@@ -6,6 +6,13 @@ from reportlab.platypus import SimpleDocTemplate, Image, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
 from io import BytesIO
 
+pio.kaleido.scope.chromium_args = (
+    "--headless",
+    "--no-sandbox",
+    "--disable-dev-shm-usage",
+    "--disable-gpu"
+)
+
 st.set_page_config(page_title="Netflix Dashboard", layout="wide")
 
 st.title("🎬 Netflix Dashboard")
