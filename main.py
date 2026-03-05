@@ -23,11 +23,13 @@ df = load_data()
 
 type_counts = df["type"].value_counts()
 
-fig1, ax1 = plt.subplots()
+fig1, ax1 = plt.subplots(figsize=(6,4))
+
+
 ax1.pie(type_counts, labels=type_counts.index, autopct='%1.1f%%')
 ax1.set_title("Movies vs TV Shows")
 
-st.pyplot(fig1)
+st.pyplot(fig1, use_container_width=True)
 
 
 # =====================
@@ -36,13 +38,13 @@ st.pyplot(fig1)
 
 year_counts = df["release_year"].value_counts().sort_index()
 
-fig2, ax2 = plt.subplots()
+fig2, ax2 = plt.subplots(figsize=(10, 6))
 ax2.plot(year_counts.index, year_counts.values)
 ax2.set_title("Titles Released Per Year")
 ax2.set_xlabel("Year")
 ax2.set_ylabel("Number of Titles")
 
-st.pyplot(fig2)
+st.pyplot(fig2, use_container_width=True)
 
 
 # =====================
@@ -52,14 +54,14 @@ st.pyplot(fig2)
 df["country"] = df["country"].fillna("Unknown")
 top_countries = df["country"].value_counts().head(10)
 
-fig3, ax3 = plt.subplots()
+fig3, ax3 = plt.subplots(figsize=(10, 6))
 ax3.bar(top_countries.index, top_countries.values)
 ax3.set_title("Top 10 Countries Producing Content")
 ax3.set_xlabel("Country")
 ax3.set_ylabel("Titles")
 plt.xticks(rotation=45)
 
-st.pyplot(fig3)
+st.pyplot(fig3, use_container_width=True)
 
 
 # =====================
