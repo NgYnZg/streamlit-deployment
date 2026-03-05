@@ -1,140 +1,121 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
-import plotly.io as pio
+import matplotlib.pyplot as plt
 from reportlab.platypus import SimpleDocTemplate, Image, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
 from io import BytesIO
-
-pio.kaleido.scope.chromium_args = (
-    "--headless",
-    "--no-sandbox",
-    "--disable-dev-shm-usage",
-    "--disable-gpu"
-)
 
 st.set_page_config(page_title="Netflix Dashboard", layout="wide")
 
 st.title("🎬 Netflix Dashboard")
 
+# Load dataset
 @st.cache_data
 def load_data():
     df = pd.read_csv("netflix_titles.csv")
-    df["date_added"] = pd.to_datetime(df["date_added"], errors="coerce")
-    df["year_added"] = df["date_added"].dt.year
     return df
 
 df = load_data()
 
-st.subheader("Dataset Overview")
+# =====================
+# Chart 1: Movies vs TV Shows
+# =====================
 
-col1, col2, col3 = st.columns(3)
+type_counts = df["type"].value_counts()
 
-col1.metric("Total Titles", len(df))
-col2.metric("Movies", len(df[df["type"] == "Movie"]))
-col3.metric("TV Shows", len(df[df["type"] == "TV Show"]))
+fig1, ax1 = plt.subplots()
+ax1.pie(type_counts, labels=type_counts.index, autopct='%1.1f%%')
+ax1.set_title("Movies vs TV Shows")
 
-
-# =========================
-# CHART 1: Content Type
-# =========================
-
-type_count = df["type"].value_counts().reset_index()
-type_count.columns = ["type", "count"]
-
-fig1 = px.pie(
-    type_count,
-    names="type",
-    values="count",
-    title="Movies vs TV Shows"
-)
-
-st.plotly_chart(fig1, use_container_width=True)
+st.pyplot(fig1)
 
 
-# =========================
-# CHART 2: Release Trend
-# =========================
+# =====================
+# Chart 2: Release Year Trend
+# =====================
 
-year_data = df.groupby("release_year").size().reset_index(name="count")
+year_counts = df["release_year"].value_counts().sort_index()
 
-fig2 = px.line(
-    year_data,
-    x="release_year",
-    y="count",
-    title="Titles Released Per Year"
-)
+fig2, ax2 = plt.subplots()
+ax2.plot(year_counts.index, year_counts.values)
+ax2.set_title("Titles Released Per Year")
+ax2.set_xlabel("Year")
+ax2.set_ylabel("Number of Titles")
 
-st.plotly_chart(fig2, use_container_width=True)
+st.pyplot(fig2)
 
 
-# =========================
-# CHART 3: Top Countries
-# =========================
+# =====================
+# Chart 3: Top Countries
+# =====================
 
 df["country"] = df["country"].fillna("Unknown")
-country_counts = df["country"].value_counts().head(10).reset_index()
-country_counts.columns = ["country", "count"]
+top_countries = df["country"].value_counts().head(10)
 
-fig3 = px.bar(
-    country_counts,
-    x="country",
-    y="count",
-    title="Top 10 Content Producing Countries"
-)
+fig3, ax3 = plt.subplots()
+ax3.bar(top_countries.index, top_countries.values)
+ax3.set_title("Top 10 Countries Producing Content")
+ax3.set_xlabel("Country")
+ax3.set_ylabel("Titles")
+plt.xticks(rotation=45)
 
-st.plotly_chart(fig3, use_container_width=True)
+st.pyplot(fig3)
 
 
-# =====================================
-# FUNCTION TO GENERATE PDF REPORT
-# =====================================
+# =====================
+# Function: Create PDF
+# =====================
 
 def create_pdf():
 
     buffer = BytesIO()
-    pdf = SimpleDocTemplate(buffer)
-
     styles = getSampleStyleSheet()
-    elements = []
 
-    elements.append(Paragraph("Netflix Dashboard Report", styles["Title"]))
-    elements.append(Spacer(1, 20))
+    story = []
+    story.append(Paragraph("Netflix Dashboard Report", styles['Title']))
+    story.append(Spacer(1,20))
 
-    # Convert charts to images
-    img1 = BytesIO(pio.to_image(fig1, format="png"))
-    img2 = BytesIO(pio.to_image(fig2, format="png"))
-    img3 = BytesIO(pio.to_image(fig3, format="png"))
+    # Save figures as images
+    img1 = BytesIO()
+    fig1.savefig(img1, format="png")
+    img1.seek(0)
 
-    elements.append(Paragraph("Content Type Distribution", styles["Heading2"]))
-    elements.append(Image(img1, width=500, height=300))
+    img2 = BytesIO()
+    fig2.savefig(img2, format="png")
+    img2.seek(0)
 
-    elements.append(Spacer(1, 20))
+    img3 = BytesIO()
+    fig3.savefig(img3, format="png")
+    img3.seek(0)
 
-    elements.append(Paragraph("Release Year Trend", styles["Heading2"]))
-    elements.append(Image(img2, width=500, height=300))
+    story.append(Paragraph("Movies vs TV Shows", styles['Heading2']))
+    story.append(Image(img1, width=500, height=300))
+    story.append(Spacer(1,20))
 
-    elements.append(Spacer(1, 20))
+    story.append(Paragraph("Release Trend", styles['Heading2']))
+    story.append(Image(img2, width=500, height=300))
+    story.append(Spacer(1,20))
 
-    elements.append(Paragraph("Top Producing Countries", styles["Heading2"]))
-    elements.append(Image(img3, width=500, height=300))
+    story.append(Paragraph("Top Countries", styles['Heading2']))
+    story.append(Image(img3, width=500, height=300))
 
-    pdf.build(elements)
+    pdf = SimpleDocTemplate(buffer)
+    pdf.build(story)
 
     buffer.seek(0)
     return buffer
 
 
-# =====================================
-# DOWNLOAD BUTTON
-# =====================================
+# =====================
+# Download Button
+# =====================
 
-st.subheader("Export Report")
+st.subheader("Download Report")
 
 pdf_file = create_pdf()
 
 st.download_button(
-    label="📄 Download Dashboard Report (PDF)",
+    label="Download Dashboard as PDF",
     data=pdf_file,
     file_name="netflix_dashboard_report.pdf",
     mime="application/pdf"
